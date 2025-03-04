@@ -250,7 +250,7 @@ class Spectra(ABC):
         return stats
 
     def pre_calculate_spectra_properties(self, save_path, force_recalculate=False):
-        if os.path.exists(f"{save_path}_precalculated_spectra_properties") and not force_recalculate:
+        if False:#os.path.exists(f"{save_path}_precalculated_spectra_properties") and not force_recalculate:
             print(
                 f"File {save_path}_precalculated_spectra_properties already exists, set force_recalculate to True to recalculate")
         else:
