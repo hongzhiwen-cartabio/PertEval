@@ -16,7 +16,7 @@ save_dir: ${paths.data_dir}/${data.data_name}/pert_effects/${data.eval_pert}/per
 
 
 data:
-  data_name: "replogle_k562"
+  data_name: "chi_data"
   data_type: "scgpt"
   split: 0.2
   deg_eval: false

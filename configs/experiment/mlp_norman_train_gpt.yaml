@@ -35,11 +35,11 @@ callbacks:
     _target_: lightning.pytorch.callbacks.LearningRateMonitor
     logging_interval: 'epoch'
 
-logger:
-  wandb:
-    tags: ["${model_type}", "${data.data_name}", "${data.fm}","split_${data.split}", "replicate_${data.replicate}", "hpo"]
-    group: "${model_type}_${data.data_name}_${data.split}"
-    project: "perturbench-local"
+#logger:
+#  wandb:
+#    tags: ["${model_type}", "${data.data_name}", "${data.fm}","split_${data.split}", "replicate_${data.replicate}", "hpo"]
+#    group: "${model_type}_${data.data_name}_${data.split}"
+#    project: "perturbench-local"
 
 model:
   optimizer:

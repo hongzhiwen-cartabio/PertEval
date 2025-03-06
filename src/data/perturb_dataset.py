@@ -81,6 +81,15 @@ class PerturbData(Dataset):
             else:
                 self._load_preprocessed_data(feature_path)
 
+        else:
+            data_file = f"{feature_path}/train_data.pkl.gz"
+            if not os.path.exists(data_file):
+                (self.X_train, self.train_target,
+                 self.X_test, self.test_target,
+                 self.ctrl_expr, _) = self.preprocess_and_featurise(adata)
+            else:
+                self._load_preprocessed_data(feature_path)
+
     def _load_preprocessed_data(self, feature_path):
         self.basal_ctrl_adata = sc.read_h5ad(f"{self.data_path}/basal_ctrl_{self.data_name}_pp_filtered.h5ad")
         with gzip.open(f"{feature_path}/train_data.pkl.gz", "rb") as f:
@@ -165,6 +174,7 @@ class PerturbData(Dataset):
         os.makedirs(feature_path, exist_ok=True)
     
     # 1. 加载预训练嵌入
+        print(self.data_path, feature_path)
         ctrl_emb_path = f"{self.data_path}/embeddings/{self.data_name}_scgpt_fm_ctrl.pkl.gz"
         pert_emb_path = f"{self.data_path}/embeddings/{self.data_name}_scgpt_fm_pert.pkl.gz"
     
@@ -178,28 +188,30 @@ class PerturbData(Dataset):
 
     # 2. 获取扰动列表并划分训练测试集
         pert_list = list(fm_pert_data.keys())
+        import ipdb
+        ipdb.set_trace()
         train_perts, test_perts = train_test_split(pert_list, test_size=0.2, random_state=42)
-    
+
     # 3. 生成输入特征
     # 3.1 随机采样 ctrl 嵌入作为基线
         num_ctrl_cells = fm_ctrl_data.shape[0]
-        num_train = len(train_perts)
-        num_test = len(test_perts)
-    
+        num_train = sum(fm_pert_data[i].shape[0] for i in train_perts)#len(train_perts)
+        num_test = sum(fm_pert_data[i].shape[0] for i in test_perts)#len(test_perts)
+
     # 随机选择 ctrl 嵌入索引
-        train_ctrl_idx = np.random.choice(num_ctrl_cells, num_train, replace=True)
-        test_ctrl_idx = np.random.choice(num_ctrl_cells, num_test, replace=True)
+        train_ctrl_idx = np.arange(num_train)#np.random.choice(num_ctrl_cells, num_train, replace=False)
+        test_ctrl_idx = np.arange(num_train, num_train+num_test)#np.random.choice(num_ctrl_cells, num_test, replace=False)
     
     # 3.2 构建输入特征：ctrl_embedding + pert_embedding_mean
         X_train = []
         for i, pert in enumerate(train_perts):
         # 取单个ctrl细胞的嵌入（512维）
-            ctrl_emb = fm_ctrl_data[train_ctrl_idx[i]]  
+        #     ctrl_emb = fm_ctrl_data[train_ctrl_idx[i]]
         # 取pert的全嵌入向量（34221维）
             pert_emb = fm_pert_data[pert]  # 形状 (34221,)
         # 拼接特征（确保维度匹配）
-            X_train.append(np.concatenate([ctrl_emb, pert_emb]))  # 最终形状 (512+34221,)
-
+            X_train.append(pert_emb)  # 最终形状 (512+34221,)
+        X_train = torch.FloatTensor(np.concatenate([np.concatenate(X_train), fm_ctrl_data[train_ctrl_idx]], 1))
         # for pert in train_perts:
         #     ctrl_emb = fm_ctrl_data[np.random.choice(train_ctrl_idx, 1)].mean(axis=0)  # 随机采样一个 ctrl 嵌入
         #     pert_emb = fm_pert_data[pert].mean(axis=0)  # 取该扰动的嵌入均值
@@ -207,21 +219,25 @@ class PerturbData(Dataset):
     
         X_test = []
         for i, pert in enumerate(test_perts):
-            ctrl_emb = fm_ctrl_data[test_ctrl_idx[i]]
+            # ctrl_emb = fm_ctrl_data[test_ctrl_idx[i]]
             pert_emb = fm_pert_data[pert]
-            X_test.append(np.concatenate([ctrl_emb, pert_emb]))
+            X_test.append(pert_emb)
+        X_test = torch.FloatTensor(np.concatenate([np.concatenate(X_test), fm_ctrl_data[test_ctrl_idx]], 1))
         # for pert in test_perts:
         #     ctrl_emb = fm_ctrl_data[np.random.choice(test_ctrl_idx, 1)].mean(axis=0)
         #     pert_emb = fm_pert_data[pert].mean(axis=0)
         #     X_test.append(np.concatenate([ctrl_emb, pert_emb]))
     
     # 转换为 Tensor
-        X_train = torch.FloatTensor(np.array(X_train))
-        X_test = torch.FloatTensor(np.array(X_test))
+    #     X_train = torch.FloatTensor(np.array(X_train))
+    #     X_test = torch.FloatTensor(np.array(X_test))
     
     # 4. 构造目标输出
-        train_target = torch.FloatTensor([fm_pert_data[pert] for pert in train_perts])
-        test_target = torch.FloatTensor([fm_pert_data[pert] for pert in test_perts])
+        #TODO: We need to retrieve the corresponding pert data for the target
+        train_target = torch.FloatTensor(np.array([adata[adata.obs['condition'] == pert].X.toarray() for pert in train_perts]))
+        test_target = torch.FloatTensor(np.array([adata[adata.obs['condition'] == pert].X.toarray() for pert in test_perts]))
+        import ipdb
+        ipdb.set_trace()
         # train_target = torch.FloatTensor([fm_pert_data[pert].mean(axis=0) for pert in train_perts])
         # test_target = torch.FloatTensor([fm_pert_data[pert].mean(axis=0) for pert in test_perts])
     
@@ -231,7 +247,7 @@ class PerturbData(Dataset):
         with gzip.open(f"{feature_path}/test_data.pkl.gz", "wb") as f:
             pkl.dump((X_test, test_target), f)
     
-        return X_train, train_target, X_test, test_target, None, None    
+        return X_train, train_target, X_test, test_target, None, None
     # def preprocess_and_featurise(self, adata):
     #     if "norman" in self.data_name:
     #         nonzero_genes = (adata.X.sum(axis=0) > 5).A1
@@ -264,7 +280,7 @@ class PerturbData(Dataset):
     #     # else:
     #     #     adata.obs['condition'] = adata.obs['perturbation'].replace('control', 'ctrl')
     #     # # ipdb.set_trace()
-        
+
     #     # adata.var.index = adata.var['gene_symbols'].str.upper()
 
     #     # if "norman" in self.data_name:
@@ -421,7 +437,7 @@ class PerturbData(Dataset):
     #         # 如果有缺失的扰动，可以选择跳过或者用默认值填充
     #             for pert in missing_perts:
     #                 fm_pert_data[pert] = np.zeros((1, fm_ctrl_data.shape[1]))  # 默认值为零向量
-                    
+
     #         fm_pert_data = {pert: emb for pert, emb in fm_pert_data.items() if emb.shape[0] > 0}
 
     #         assert isinstance(fm_ctrl_data, (np.ndarray, anndata.AnnData, pd.DataFrame)), ("fm_ctrl_data should be an "
@@ -582,7 +598,7 @@ class PerturbData(Dataset):
     #     if not os.path.exists(f"{self.data_path}/target_perts"):
     #         os.makedirs(f"{self.data_path}/target_perts")
 
-    
+
     #     with open(f"{self.data_path}/target_perts/all_perts_test.pkl", "wb") as f:
     #         pkl.dump(self.all_perts_test, f)
 
@@ -737,7 +753,7 @@ class PerturbData(Dataset):
     #     # raise HydraException("Data preprocessed and saved to disk. Moving on to next multirun...")
 
     #     return X_train, train_target, X_val, val_target, X_test, test_target, ctrl_expr, self.all_perts_test
-    
+
 
 
 

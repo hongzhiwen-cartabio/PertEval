@@ -1,5 +1,9 @@
 <div align="center">
 
+# Notes from Hongzhi
+
+Save `GSE216909_xi.h5ad` as `./data/chi_data.h5ad`.
+
 # PertEval: Evaluating Single-Cell Foundation Models for Perturbation Response Prediction
 
 <a href="https://pytorch.org/get-started/locally/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white"></a>

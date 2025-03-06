@@ -1,7 +1,7 @@
 import os
 import pickle as pkl
 from typing import Any, Dict, Optional
-
+import anndata as ad
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from pertpy import data as scpert_data
@@ -89,8 +89,10 @@ class PertDataModule(LightningDataModule):
                 scpert_loader = getattr(scpert_data, self.load_scpert_data[data_name])
                 scpert_loader()
         else:
-            raise ValueError(f"Data name {self.data_name} not recognized. Choose from: 'norman_1', 'norman_2', "
-                             f"'replogle_k562', or replogle_rpe1")
+            print('Customized data, skip download.')
+            pass
+            # raise ValueError(f"Data name {self.data_name} not recognized. Choose from: 'norman_1', 'norman_2', "
+            #                  f"'replogle_k562', or replogle_rpe1")
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data and create datasets."""
@@ -107,8 +109,9 @@ class PertDataModule(LightningDataModule):
                 data_name = "norman"
             else:
                 data_name = self.data_name
-            scpert_loader = getattr(scpert_data, self.load_scpert_data[data_name])
-            adata = scpert_loader()
+            # scpert_loader = getattr(scpert_data, self.load_scpert_data[data_name])
+            # adata = scpert_loader()
+            adata = ad.read_h5ad(f"./data/{data_name}.h5ad")
 
             # Initialize datasets using PerturbData
             self.train_dataset = PerturbData(
