@@ -17,7 +17,9 @@ class PredictionModule(LightningModule):
             scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = None,
             mean_adjusted: Optional[bool] = False,
             data_name: Optional[str] = None,
-            save_dir: Optional[str] = None
+            fm: Optional[str] = None,
+            save_dir: Optional[str] = None,
+            split: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -25,6 +27,8 @@ class PredictionModule(LightningModule):
         self.save_hyperparameters(logger=False)
         self.mean_adjusted = mean_adjusted
         self.data_name = data_name
+        self.split = split
+        self.fm = fm
 
         self.net = net
         self.model_type = model_type
@@ -40,6 +44,7 @@ class PredictionModule(LightningModule):
         self.val_mse = MeanSquaredError()
         self.test_mse = MeanSquaredError()
         self.baseline_mse = MeanSquaredError()
+        self.test_results = {'preds': [], 'targets': []}
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
@@ -49,7 +54,11 @@ class PredictionModule(LightningModule):
         if len(batch) == 4:
             x, y, deg_dict, input_expr = batch
         else:
-            x, y = batch
+            try:
+                x, y = batch
+            except:
+                import ipdb
+                ipdb.set_trace()
 
         if x.dtype != torch.float32:
             x = x.to(torch.float32)
@@ -105,7 +114,7 @@ class PredictionModule(LightningModule):
             x, y = batch
             input_expr = x
         if not de_dict:
-            loss, preds, targets = self.model_step((x, y, input_expr))
+            loss, preds, targets = self.model_step((x, y))
             self.test_mse(preds, targets)
             self.log("test/mse", self.test_mse, on_step=False, on_epoch=True, prog_bar=True)
         else:
@@ -117,6 +126,12 @@ class PredictionModule(LightningModule):
             targets = targets[:, de_idx]
             self.test_mse(preds, targets)
             self.log("test/mse", self.test_mse, on_step=False, on_epoch=True, prog_bar=True)
+        self.test_results['preds'].append(preds.cpu())
+        self.test_results['targets'].append(targets.cpu())
+
+    def on_test_epoch_end(self) -> None:
+        with open(f'./results/{self.data_name}_{self.fm}_split{self.split}.pkl', 'wb') as f:
+            pkl.dump([torch.cat(self.test_results['preds']), torch.cat(self.test_results['targets'])], f)
 
     def setup(self, stage: str) -> None:
         """Lightning hook that is called at the beginning of fit (train + validate), validate,
@@ -129,6 +144,7 @@ class PredictionModule(LightningModule):
         """
         if self.hparams.compile and stage == "fit":
             self.net = torch.compile(self.net)
+
 
     def configure_optimizers(self) -> Dict[str, Any]:
         optimizer = self.hparams.optimizer(params=self.parameters())

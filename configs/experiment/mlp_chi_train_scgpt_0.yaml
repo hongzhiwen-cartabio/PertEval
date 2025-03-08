@@ -8,8 +8,8 @@ defaults:
   - override /model: mlp
   - override /logger: wandb
 
-total_genes: 2820 # 15989
-emb_dim: 1024 # 512 for geneformer, 512 for scGPT, 1280 for UCE, 3072 for scFoundation
+total_genes: 15989 # 15989
+emb_dim: 512 # 512 for geneformer, 512 for scGPT, 1280 for UCE, 3072 for scFoundation
 hidden_dim: 256 # embed_dim / 2
 mean_adjusted: false
 save_dir: ${paths.data_dir}/${data.data_name}/pert_effects/${data.eval_pert}/pert_effect_pred_${data.fm}.pkl
@@ -17,7 +17,7 @@ save_dir: ${paths.data_dir}/${data.data_name}/pert_effects/${data.eval_pert}/per
 
 data:
   data_name: "chi_data"
-  data_type: "scgpt"
+#  data_type: "scgpt"
   split: 0
   deg_eval: false
   eval_pert: null
@@ -62,3 +62,5 @@ model:
     min_lr: 5e-9
 
   data_name: "${data.data_name}"
+  fm: "${data.fm}"
+  split: "${data.split}"
