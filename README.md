@@ -2,7 +2,18 @@
 
 # Notes from Hongzhi
 
-Save `GSE216909_xi.h5ad` as `./data/chi_data.h5ad`.
+## How to run the new codes
+### Install Dependencies
+
+`pip install -r requirements.txt`
+
+### Prepare data files
+1. Save `GSE216909_xi.h5ad` as `./data/chi_data.h5ad` (must contain post-perturb cells in .X).
+
+1. Save embeddings in `./data/{data_name}_{fm_name}.h5ad`, .e.g, `./data/chi_data_scGPT.h5ad`. 
+Embeddings must be placed in `.obsm['pert_emb']` and `.obsm['ctrl_emb']`, must contain `.obs['guide_ids']`.
+
+1. Save split-related files as `./data/{data_name}_fold_indices.json` and `./data/{data_name}_fold_names.csv`. See examples in `./data`.
 
 # PertEval: Evaluating Single-Cell Foundation Models for Perturbation Response Prediction
 

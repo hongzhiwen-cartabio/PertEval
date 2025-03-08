@@ -52,7 +52,7 @@ class PertDataModule(LightningDataModule):
         elif isinstance(split, str):
             self.spectral_parameter = f"{split}_{str(replicate)}"
         elif isinstance(split, int):
-            self.spectral_parameter = f"{split:.2f}_{str(replicate)}"
+            self.spectral_parameter = split
         else:
             raise ValueError("Split must be a float, int or a string!")
 
@@ -109,9 +109,11 @@ class PertDataModule(LightningDataModule):
                 data_name = "norman"
             else:
                 data_name = self.data_name
-            # scpert_loader = getattr(scpert_data, self.load_scpert_data[data_name])
-            # adata = scpert_loader()
-            adata = ad.read_h5ad(f"./data/{data_name}.h5ad")
+            if data_name in self.load_scpert_data:
+                scpert_loader = getattr(scpert_data, self.load_scpert_data[data_name])
+                adata = scpert_loader()
+            else:
+                adata = ad.read_h5ad(f"./data/{data_name}.h5ad")
 
             # Initialize datasets using PerturbData
             self.train_dataset = PerturbData(

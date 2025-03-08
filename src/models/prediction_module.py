@@ -49,7 +49,7 @@ class PredictionModule(LightningModule):
         if len(batch) == 4:
             x, y, deg_dict, input_expr = batch
         else:
-            x, y, input_expr = batch
+            x, y = batch
 
         if x.dtype != torch.float32:
             x = x.to(torch.float32)
@@ -57,11 +57,11 @@ class PredictionModule(LightningModule):
         if y.dtype != torch.float32:
             y = y.to(torch.float32)
 
-        if input_expr.dtype != torch.float32:
-            input_expr = input_expr.to(torch.float32)
+        # if input_expr.dtype != torch.float32:
+        #     input_expr = input_expr.to(torch.float32)
 
         preds = self.forward(x)
-        pert_effect = y - input_expr
+        pert_effect = y #- input_expr
         loss = torch.sqrt(self.criterion(preds, pert_effect))
 
         return loss, preds, pert_effect
