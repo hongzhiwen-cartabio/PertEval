@@ -3,6 +3,7 @@
 # Notes from Hongzhi
 
 ## How to run the new codes
+
 ### Install Dependencies
 
 `pip install -r requirements.txt`
@@ -14,6 +15,13 @@
 Embeddings must be placed in `.obsm['pert_emb']` and `.obsm['ctrl_emb']`, must contain `.obs['guide_ids']`.
 
 1. Save split-related files as `./data/{data_name}_fold_indices.json` and `./data/{data_name}_fold_names.csv`. See examples in `./data`.
+
+
+## How to run scGPT
+
+```cd scGPT
+pip install .
+pip install torch==2.1.2 torchtext==0.16.2 --index-url https://download.pytorch.org/whl/cu121```
 
 # PertEval: Evaluating Single-Cell Foundation Models for Perturbation Response Prediction
 
